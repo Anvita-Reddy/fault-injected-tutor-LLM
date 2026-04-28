@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Quiz — Question {{ question_number }}</title>
+    <style>
+        body { font-family: -apple-system, sans-serif; margin: 0; padding: 0; height: 100vh; display: flex; flex-direction: column; }
+        header { background: #2c5aa0; color: white; padding: 12px 20px; }
+        header h2 { margin: 0; font-size: 16px; font-weight: 500; }
+        .container { display: flex; flex: 1; overflow: hidden; }
+        .quiz-pane { flex: 1; padding: 30px; overflow-y: auto; border-right: 1px solid #ddd; }
+        .tutor-pane { width: 420px; display: flex; flex-direction: column; background: #fafafa; }
+        .question { font-size: 17px; margin-bottom: 20px; line-height: 1.5; }
+        .options label { display: block; padding: 12px; margin: 8px 0; border: 1px solid #ccc; border-radius: 6px; cursor: pointer; transition: background 0.15s; }
+        .options label:hover { background: #f0f4fa; }
+        .options input[type="radio"] { margin-right: 10px; }
+        .submit-btn { background: #2c5aa0; color: white; padding: 12px 28px; border: none; border-radius: 4px; font-size: 15px; cursor: pointer; margin-top: 20px; }
+        .submit-btn:disabled { background: #aaa; cursor: not-allowed; }
+
+        .tutor-header { padding: 14px 18px; background: #eaeaea; border-bottom: 1px solid #ddd; font-weight: 500; }
+        .tutor-messages { flex: 1; overflow-y: auto; padding: 14px; }
+        .msg { padding: 10px 12px; margin: 8px 0; border-radius: 8px; max-width: 90%; line-height: 1.45; }
+        .msg.user { background: #2c5aa0; color: white; margin-left: auto; }
+        .msg.ai { background: #e8e8e8; color: #222; }
+        .tutor-input { display: flex; padding: 12px; border-top: 1px solid #ddd; background: white; }
+        .tutor-input input { flex: 1; padding: 10px; border: 1px solid #ccc; border-radius: 4px; font-size: 14px; }
+        .tutor-input button { margin-left: 8px; padding: 10px 16px; background: #2c5aa0; color: white; border: none; border-radius: 4px; cursor: pointer; }
+    </style>
+</head>
+<body>
+    <header><h2>Question {{ question_number }} of {{ total_questions }}</h2></header>
+    <div class="container">
+        <div class="quiz-pane">
+            <div class="question">{{ question_text }}</div>
+            <div class="options">
+                {% for letter, text in options.items() %}
+                <label>
+                    <input type="radio" name="answer" value="{{ letter }}">
+                    <strong>{{ letter }}.</strong> {{ text }}
+                </label>
+                {% endfor %}
+            </div>
+            <button class="submit-btn" id="submitBtn" onclick="submitAnswer()">Submit Answer</button>
+        </div>
+
+        <div class="tutor-pane">
+            <div class="tutor-header">AI Tutor</div>
+            <div class="tutor-messages" id="messages">
+                <div class="msg ai">Hi! Ask me anything about this question and I'll help you think through it.</div>
+            </div>
+            <div class="tutor-input">
+                <input type="text" id="userInput" placeholder="Ask the tutor..." onkeydown="if(event.key==='Enter') sendMessage()">
+                <button onclick="sendMessage()">Send</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const questionId = "{{ question_id }}";
+
+        async function sendMessage() {
+            const input = document.getElementById('userInput');
+            const text = input.value.trim();
+            if (!text) return;
+
+            const messages = document.getElementById('messages');
+            messages.innerHTML += `<div class="msg user">${text}</div>`;
+            input.value = '';
+            messages.scrollTop = messages.scrollHeight;
+
+            const res = await fetch('/ask_tutor', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({message: text, question_id: questionId})
+            });
+            const data = await res.json();
+            messages.innerHTML += `<div class="msg ai">${data.reply}</div>`;
+            messages.scrollTop = messages.scrollHeight;
+        }
+
+        async function submitAnswer() {
+            const selected = document.querySelector('input[name="answer"]:checked');
+            if (!selected) {
+                alert('Please select an answer.');
+                return;
+            }
+            document.getElementById('submitBtn').disabled = true;
+
+            const res = await fetch('/submit_answer', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({question_id: questionId, answer: selected.value})
+            });
+            const data = await res.json();
+            window.location.href = data.next_url;
+        }
+    </script>
+</body>
+</html>

@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Study Consent</title>
+    <style>
+        body { font-family: -apple-system, sans-serif; max-width: 700px; margin: 60px auto; padding: 20px; line-height: 1.6; color: #222; }
+        h1 { color: #111; }
+        .consent-box { background: #f7f7f7; padding: 24px; border-radius: 8px; margin: 24px 0; }
+        label { display: block; margin: 12px 0 4px; font-weight: 500; }
+        input[type="text"], input[type="email"] { width: 100%; padding: 10px; font-size: 15px; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box; }
+        button { background: #2c5aa0; color: white; padding: 12px 24px; border: none; border-radius: 4px; font-size: 15px; cursor: pointer; margin-top: 20px; }
+        button:hover { background: #1e3f73; }
+        .checkbox-row { margin: 20px 0; }
+    </style>
+</head>
+<body>
+    <h1>Research Study: AI-Assisted Learning</h1>
+
+    <div class="consent-box">
+        <h3>About this study</h3>
+        <p>You are invited to take part in a short research study on how students interact with AI tutoring systems. You will take a brief quiz on machine learning concepts, with an AI tutor available to assist you.</p>
+        <p>Your responses and interactions with the tutor will be recorded for research purposes. The session takes approximately 15 minutes. You may stop at any time.</p>
+        <p>After the quiz, you will receive a debriefing with additional information about the study.</p>
+        <p>By proceeding, you confirm that you are 18 or older and consent to participate.</p>
+    </div>
+
+    <form action="/consent" method="POST">
+        <label for="name">Name</label>
+        <input type="text" id="name" name="name" required>
+
+        <label for="email">Email</label>
+        <input type="email" id="email" name="email" required>
+
+        <div class="checkbox-row">
+            <input type="checkbox" id="agree" required>
+            <label for="agree" style="display: inline; font-weight: normal;">I have read the above and consent to participate.</label>
+        </div>
+
+        <button type="submit">Begin Study</button>
+    </form>
+</body>
+</html>
