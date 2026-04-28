@@ -45,28 +45,32 @@ Participants are linked to a follow-up Qualtrics survey via `participant_id`, al
 | Survey | Qualtrics (joined via participant_id) |
 
 ## Architecture
+
+```
 ┌─────────────┐      ┌──────────────┐      ┌─────────────────┐
 │   Consent   │────▶│     Quiz     │────▶│    Debrief      │
 │             │      │ (8 Q's, MCQ) │      │  + Survey link  │
 └─────────────┘      └──────┬───────┘      └─────────────────┘
-│
-▼
-┌───────────────┐
-│   AI Tutor    │
-│   (routed)    │
-└───┬───────┬───┘
-│       │
-┌─────────▼─┐   ┌─▼──────────────┐
-│ Fault     │   │  Gemini API    │
-│ bank      │   │  (wrong frame  │
-│ (canned)  │   │   pinned)      │
-└───────────┘   └────────────────┘
-│       │
-▼       ▼
-┌─────────────────────┐
-│  Supabase logging   │
-│  (3 tables)         │
-└─────────────────────┘
+                            │
+                            ▼
+                    ┌───────────────┐
+                    │   AI Tutor    │
+                    │   (routed)    │
+                    └───┬───────┬───┘
+                        │       │
+              ┌─────────▼─┐   ┌─▼──────────────┐
+              │ Fault     │   │  Gemini API    │
+              │ bank      │   │  (wrong frame  │
+              │ (canned)  │   │   pinned)      │
+              └───────────┘   └────────────────┘
+                        │       │
+                        ▼       ▼
+                ┌─────────────────────┐
+                │  Supabase logging   │
+                │  (3 tables)         │
+                └─────────────────────┘
+```
+
 
 ## Local Setup
 
@@ -77,10 +81,13 @@ pip install -r requirements.txt
 ```
 
 Create a `.env` file:
+
+```
 GEMINI_API_KEY=...
 SUPABASE_URL=...
 SUPABASE_KEY=...
 FLASK_SECRET_KEY=...
+```
 
 Provision the Supabase schema (`participants`, `quiz_responses`, `tutor_interactions`), then:
 
