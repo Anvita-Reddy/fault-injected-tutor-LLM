@@ -1,123 +1,95 @@
-# AI Tutor Chat App
+# Fault-Injected Tutor LLM (FILI)
 
-A Flask-based chat application powered by Google Gemini. User info and full conversation history are saved to `users.json` for later review.
+A Flask-based research platform that studies how students interact with AI tutors when the AI is confidently wrong. Built for an NYU class research project on AI trust calibration and error detection in human–AI learning contexts.
 
----
-
-## Setup
-
-### 1. Clone / download the project
-
-Make sure your folder structure looks like this:
-
-```
-project/
-├── app.py
-├── requirements.txt
-├── .env
-└── templates/
-    ├── login.html
-    └── chat.html
-```
+**🔗 Live demo:** https://genai-project-z66h.onrender.com
+**Team:** Anvita Inture, Muskaan Kumar, Sravika Linga. 
 
 ---
 
-### 2. Create a virtual environment
+## The Question
+
+AI tutoring tools are being adopted faster than researchers can study them. Standard assessments measure whether students get the right answer — not whether they thought independently to get there. A student who copies a confident AI error and a student who verified the correct answer look identical in outcome data.
+
+**FILI is the instrument that tells them apart.**
+
+## How it works
+
+Participants take an 8-question machine learning quiz. Alongside each question, they have access to an AI tutor that has been deliberately compromised: every explanation it gives points toward a wrong answer, and it defends that framing under pushback.
+
+The tutor uses a **hybrid fault-injection architecture**:
+
+- **Canned fault delivery.** When the participant asks a direct question ("what's the answer?", "is it B?"), the app returns a pre-written wrong explanation from a structured fault bank — identical across all participants for clean experimental control.
+- **Gemini-pinned conversational layer.** For follow-up questions and pushback ("doesn't that contradict X?"), the app calls the Gemini API with the wrong framing pinned in its system prompt, so the tutor maintains the incorrect position naturally across conversation turns.
+
+This hybrid approach combines the experimental rigor of pre-written stimuli with the conversational realism of a live LLM — addressing a methodological gap in prior fault-injection studies.
+
+## Behavioral Instrumentation
+
+Every interaction is logged to Supabase with full granularity:
+
+- **MCQ submissions** — answer, correctness, whether it matches the AI's wrong suggestion
+- **Tutor interactions** — every user message, AI response, and routing path (`canned`, `hedged`, `gemini_pinned`)
+- **Confidence manipulation** — Q2 and Q6 each have high-confidence and hedged variants, randomly assigned per participant, enabling within-subjects analysis of how AI confidence framing affects override behavior
+
+Participants are linked to a follow-up Qualtrics survey via `participant_id`, allowing behavioral data to be joined with self-report measures.
+
+## Stack
+
+| Layer | Technology |
+|---|---|
+| Backend | Flask (Python) |
+| Database | Supabase (Postgres) |
+| LLM | Google Gemini (gemini-2.5-flash) |
+| Hosting | Render |
+| Survey | Qualtrics (joined via participant_id) |
+
+## Architecture
+┌─────────────┐      ┌──────────────┐      ┌─────────────────┐
+│   Consent   │────▶│     Quiz     │────▶│    Debrief      │
+│             │      │ (8 Q's, MCQ) │      │  + Survey link  │
+└─────────────┘      └──────┬───────┘      └─────────────────┘
+│
+▼
+┌───────────────┐
+│   AI Tutor    │
+│   (routed)    │
+└───┬───────┬───┘
+│       │
+┌─────────▼─┐   ┌─▼──────────────┐
+│ Fault     │   │  Gemini API    │
+│ bank      │   │  (wrong frame  │
+│ (canned)  │   │   pinned)      │
+└───────────┘   └────────────────┘
+│       │
+▼       ▼
+┌─────────────────────┐
+│  Supabase logging   │
+│  (3 tables)         │
+└─────────────────────┘
+
+## Local Setup
 
 ```bash
-python -m venv venv
-source venv/bin/activate        # Mac/Linux
-venv\Scripts\activate           # Windows
-```
-
----
-
-### 3. Install dependencies
-
-```bash
+git clone https://github.com/Anvita-Reddy/fault-injected-tutor-LLM
+cd fault-injected-tutor-LLM
 pip install -r requirements.txt
 ```
 
----
+Create a `.env` file:
+GEMINI_API_KEY=...
+SUPABASE_URL=...
+SUPABASE_KEY=...
+FLASK_SECRET_KEY=...
 
-### 4. Set up your `.env` file
-
-Create a file named `.env` in the root of the project (same folder as `app.py`):
-
-```
-GEMINI_API_KEY=your_api_key_here
-```
-
-**How to get a Gemini API key:**
-1. Go to [https://aistudio.google.com/app/apikey](https://aistudio.google.com/app/apikey)
-2. Sign in with your Google account
-3. Click **Create API key**
-4. Copy the key and paste it into your `.env` file
-
-> ⚠️ Never commit your `.env` file to Git. Add it to `.gitignore`.
-
----
-
-### 5. Run the app
+Provision the Supabase schema (`participants`, `quiz_responses`, `tutor_interactions`), then:
 
 ```bash
 python app.py
 ```
 
-Then open your browser and go to:
-
-```
-http://127.0.0.1:5000
-```
+Open `http://127.0.0.1:5000`.
 
 ---
 
-## How it works
-
-1. User enters their **name and email** on the login page
-2. They are redirected to the chat interface
-3. Each message is sent to Gemini and the response is streamed back
-4. Every message (user + AI) is saved to `users.json` with a timestamp
-5. Logging out ends the session but **keeps the record** in `users.json`
-
----
-
-## Reviewing user data
-
-All sessions are stored in `users.json` in the project root. Example structure:
-
-```json
-{
-  "a3f1c2d4-...": {
-    "user_name": "Alex",
-    "user_email": "alex@example.com",
-    "joined_at": "2026-04-18T13:00:00",
-    "chat_history": [
-      { "role": "user",      "content": "How does backpropagation work?", "timestamp": "2026-04-18T13:01:00" },
-      { "role": "assistant", "content": "Great question...",              "timestamp": "2026-04-18T13:01:02" }
-    ]
-  }
-}
-```
-
-You can open the file in any text editor, or load it into Python for analysis:
-
-```python
-import json
-
-with open("users.json") as f:
-    data = json.load(f)
-
-for session_id, user in data.items():
-    print(user["user_name"], user["user_email"])
-    for msg in user["chat_history"]:
-        print(f"  [{msg['role']}] {msg['content']}")
-```
-
----
-
-## Notes
-
-- The app runs in **debug mode** by default — do not use this in production
-- Chat history is stored **in memory and in `users.json`** — restarting the server clears the in-memory session but the JSON file persists
-- Python 3.10+ is recommended
+*Built April 2026 as a class research project. The tutor is intentionally and ethically deceptive — all participants are debriefed.*
